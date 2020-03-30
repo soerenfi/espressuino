@@ -1,4 +1,4 @@
-#define SSR_PIN (6)
+#define SSR_PIN (8)
 
 const long interval = 2000;    // interval at which to update temp
 
@@ -17,7 +17,8 @@ float lastTemp;
 
 unsigned long previousMillis = 0;
 
-void initSsr(){  pinMode(SSR_PIN, OUTPUT);
+void initSsr(){ 
+   pinMode(SSR_PIN, OUTPUT);
 };
 
 void updateSsr(float curTemp) {

@@ -1,5 +1,6 @@
 {
     "board": "arduino:avr:uno",
-    "port": "/dev/cu.usbmodem641",
-    "sketch": "Espressuino.ino"
+    "port": "/dev/tty.usbmodem641",
+    "sketch": "Espressuino.ino",
+    "output": "/tmp/ArduinoOutput"
 }
