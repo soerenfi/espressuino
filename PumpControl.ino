@@ -36,7 +36,7 @@ void updatePump(){
             Serial.println("shot stopped");
             ongoingShot = false;
             digitalWrite(PUMP_PIN, 0);
-            ResetState();
+            SetStateStart();
             ssrPumpState = 0;
         }
     }
@@ -48,7 +48,7 @@ void stopShot(){
         Serial.println("shot stopped");
         ongoingShot = false;
         digitalWrite(PUMP_PIN, 0);
-        ResetState();
+        SetStateStart();
         ssrPumpState = 0;
     }
 }

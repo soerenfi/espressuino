@@ -26,7 +26,11 @@ void updateSsr(float curTemp) {
 
   if (currentMillis - previousMillis >= interval) {
     previousMillis = currentMillis; // save the last time temp was updated
-    digitalWrite(SSR_PIN, 1);
+
+    if (!bSensorError)
+    {
+      digitalWrite(SSR_PIN, 1);
+    }
 
     pState = targetTemp - curTemp;
     dState = lastTemp - curTemp;
@@ -38,7 +42,7 @@ void updateSsr(float curTemp) {
     heatCycle = max(0, heatCycle);
 
     lastTemp = curTemp;
-
+    
     if (bSensorError)
     {
       heatCycle = 0;

@@ -1,12 +1,14 @@
 // button pins
 #define TEMP_SELECTOR_BTN_PIN (2)
-#define UP_BTN_PIN (3)
-#define SEL_BTN_PIN (5)
+#define SEL_BTN_PIN (3)
+#define UP_BTN_PIN (5)
 #define DOWN_BTN_PIN (7)
 
-long btnDebounce = 250;   // the debounce time, increase if the output flickers
+unsigned long btnDebounce = 250;   // the debounce time
+unsigned long standbyTimeout = 3000000;   // 5min
+//unsigned long standbyTimeout = 15000;   // 5min
 
-typedef enum {stStart, stMenu, stEdit, stBezug} StateType;
+typedef enum {stStart, stMenu, stEdit, stBezug,stStandby, stSensorErr} StateType;
 char* StateNames[] {"stStart", "stMenu", "stEdit", "stBezug"};
 typedef enum {SetCoffeeTemp, setSteamTemp, setSteamTimeout,setEnergySaver, exitMenu} MenuOptions;
 char* MenuOptionNames[] = { "Set Coffee Temp", "Set Steam Temp",
@@ -16,37 +18,36 @@ char* MenuOptionNames[] = { "Set Coffee Temp", "Set Steam Temp",
 
 StateType lastState, currState;
 
-int menuMode = 0;
-int menuTimeout = 10000;
-int menuTime = 0;
+unsigned long menuTimeout = 10000;
+unsigned long menuTime = 0;
 
 bool tempSelectorBtnState;
 bool selBtnState;
 bool upBtnState;
 bool downBtnState;
 bool btnEvent;
+bool powerSaverMode;
 
-int tempSelectorState = 0;      // the current state
+bool tempSelectorState = 0;      // the current state
 
-long tempSelectorBtnTime = 0;         // the last time the output pin was toggled
-long upBtnTime = 0;         // the last time the output pin was toggled
-long selBtnTime = 0;         // the last time the output pin was toggled
-long downBtnTime = 0;         // the last time the output pin was toggled
-    
+unsigned long tempSelectorBtnTime = 0;         // the last time the output pin was toggled
+unsigned long upBtnTime = 0;         // the last time the output pin was toggled
+unsigned long selBtnTime = 0;         // the last time the output pin was toggled
+unsigned long downBtnTime = 0;         // the last time the output pin was toggled
+unsigned long btnEventTime = 0;
 unsigned long shotTime = 0;
-
 
 class MenuPtr{
 private:
-  int ptr = 0;
+  int _ptr = 0;
 public:
-  int getPtr(){return ptr;};
-  int getNext(){return this->ptr + 1;};
-  void resetPtr(){this->ptr = 0;};
+  int getPtr(){return _ptr;};
+  int getNext(){return _ptr + 1;};
+  void resetPtr(){_ptr = 0;};
   MenuPtr& operator++()
   {
-    this->ptr += 1;
-    this->ptr = this->ptr % LEN_MENU;
+    _ptr += 1;
+    _ptr = _ptr % LEN_MENU;
     return *this;
   }
   MenuPtr operator++(int)
@@ -57,8 +58,8 @@ public:
   }
   MenuPtr& operator--()
   {
-    this->ptr -= 1;
-    if (this->ptr < 0){this->ptr = (LEN_MENU - 1);};
+    _ptr -= 1;
+    if (_ptr < 0){_ptr = (LEN_MENU - 1);};
     return *this;
   }
   const MenuPtr operator--(int)
@@ -98,6 +99,7 @@ void getBtnStates() {
   if (tempSelectorBtnReading == HIGH && (currentTime - tempSelectorBtnTime) > btnDebounce) {
     tempSelectorBtnState = 1;
     btnEvent = 1;
+    btnEventTime = currentTime;
     Serial.println("Temp Selector Pressed!");
     tempSelectorBtnTime = currentTime;
   }
@@ -107,6 +109,7 @@ void getBtnStates() {
     Serial.println("Up Pressed!");
     upBtnState = 1;
     btnEvent = 1;
+    btnEventTime = currentTime;
     upBtnTime = currentTime;
   }
   if (selBtnReading == HIGH && (currentTime - selBtnTime) > btnDebounce) {
@@ -114,6 +117,7 @@ void getBtnStates() {
     Serial.println("Sel Pressed!");
     selBtnState = 1;
     btnEvent = 1;
+    btnEventTime = currentTime;
     selBtnTime = currentTime;
   }
   if (downBtnReading == HIGH && (currentTime - downBtnTime) > btnDebounce) {
@@ -121,38 +125,66 @@ void getBtnStates() {
     Serial.println("Down Pressed!");
     downBtnState = 1;
     btnEvent = 1;
+    btnEventTime = currentTime;
     downBtnTime = currentTime;
   }
 }
 
-void ResetState()
+void SetStateStart()
 {
   currState = stStart;
+  targetTemp = coffTargetTemp;
+  menuPtr.resetPtr();
+};
+
+
+void setStateSensorErr()
+{
+  currState = stSensorErr;
 };
 
 void MenuControl() {
 
   long int currentTime = millis();
 
-  // Serial.println(StateNames[currState]);
-
   switch ( currState )
   {
     case stStart:
-    {
+    {        
         if (!btnEvent){
-          OledStart(smoothTemperature);
+          OledStart(smoothTemperature, targetTemp, tempSelectorState);
+          if (currentTime - btnEventTime > standbyTimeout)
+          {
+            currState = stStandby;
+          }
         }
         else if (selBtnState)
         {
-          currState = stMenu;
-          menuPtr.resetPtr();
+            currState = stMenu;
         }
         else if(upBtnState)
         {
           currState  = stBezug;
           pumpSingleShot();
           shotTime = millis();
+        }        
+        else if(downBtnState)
+        {
+          currState  = stBezug;
+          pumpSingleShot();
+          shotTime = millis();
+        }
+        else if(tempSelectorBtnState)
+        {
+            if (tempSelectorState == 1) {
+              tempSelectorState = 0;
+              targetTemp = coffTargetTemp;
+            }
+            else 
+            {
+              tempSelectorState = 1;
+              targetTemp = steamTargetTemp;
+            }
         }
     }
     break;
@@ -169,7 +201,8 @@ void MenuControl() {
         }
         if(tempSelectorBtnState)
         {
-          currState = stStart;
+          SetStateStart();
+          
         }
     }
     break;
@@ -180,6 +213,7 @@ void MenuControl() {
         if (btnEvent)
         {
           stopShot();
+          SetStateStart();
         }
     }
     break;
@@ -188,34 +222,23 @@ void MenuControl() {
 
     }
     break;
+    case stStandby:
+    {
+      targetTemp = energySaverTemp;
+      OledStandby(smoothTemperature,targetTemp);
+      if (btnEvent)
+      {
+        SetStateStart();      
+      }
+    }
+    break;
+    case stSensorErr:
+    {
+      bSensorError = 1;
+      OledSensorErr();
+    }
+    break;
     default:
     break;
   }
-
-  // if (!btnEvent && currState == stMenu){
-  //   if (currentTime - menuTime > menuTimeout)
-  //   {
-  //     menuTime = currentTime;
-  //     menuPtr.resetPtr();
-  //     currState = stStart;
-  //     return;
-  //   }
-  //   else
-  //   {
-  //     return;
-  //   }
-  // }
-
-
-  // if (currState == stStart && tempSelectorBtnState == 1) {
-  //   if (tempSelectorState == 1) {
-  //     tempSelectorState = 0;
-  //     targetTemp = coffTargetTemp;
-  //   }
-  //   else 
-  //   {
-  //     tempSelectorState = 1;
-  //     targetTemp = steamTargetTemp;
-  //   }
-  // }
 }

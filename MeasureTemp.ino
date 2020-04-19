@@ -38,6 +38,7 @@ void MeasureTemperature() {
   if (rawTemperature < sensorErrorThreshold)
   {
     bSensorError = 1;   // Sensor Error prevention
+    setStateSensorErr();
   }
 
   TempFilter.Filter(rawTemperature);   // filter current temp

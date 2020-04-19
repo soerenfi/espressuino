@@ -2,6 +2,7 @@
 float targetTemp = 107.0;       // target temperature
 float coffTargetTemp = 107.0;       // target temperature
 float steamTargetTemp = 155.0;       // target temperature
+float energySaverTemp = 80.0;       // target temperature
 const float sensorOffset = 15.0;
 float smoothTemperature = 0.0;
 
@@ -44,6 +45,7 @@ void loop() {
     //LcdStart(smoothTemperature);
     //LcdMenu("Set Coffee Temp","Set Steam Temp");
     //updateSerial(coffTargetTemp,smoothTemperature);
+
     nLoop = 0;
   }
 
@@ -56,6 +58,7 @@ void loop() {
   loopTime = millis() - startTime;
   //Serial.print("loop Time: ");
   //Serial.println(loopTime);
+
   if (loopTime < cycleTime){
       delay(cycleTime - loopTime);
   }
