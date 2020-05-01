@@ -8,9 +8,19 @@ int* tempVals{ new int[128]{0} };
 int ringBufrPtr = 0;
 
 
+void StoreCoffTemp(float temp){
+    EEPROM.put(EEPROM_ADDR_COFF_TEMP, temp);
+};
+float GetCoffTemp(){
+    float readTemp{0.0f};
+    EEPROM.get(EEPROM_ADDR_COFF_TEMP, readTemp);
+    return readTemp;
+};
+
 void initOled(void) {
   u8g2.begin();
-  u8g2.setFont(u8g2_font_profont11_tr); 
+  u8g2.enableUTF8Print();
+  u8g2.setFont(u8g2_font_profont11_mf); 
   displayWidth = u8g2.getDisplayWidth();
 }
 
@@ -20,47 +30,74 @@ void OledStart(float smoothTemperature, float targetTemp, bool steamMode) {
   do {
     u8g2.setCursor(0, 7);
     u8g2.print(F("Espressuino")); 
-    u8g2.drawHLine(0 ,9 , 64); 
+    u8g2.drawHLine(0 ,9 , 66); 
     u8g2.setCursor(0, 21);
     u8g2.print(F("Temp:  "));
-    // float displayTemperature = truncf((smoothTemperature) * 10) / 10;
     // char dTempBuffer[8];
     // sprintf (dTempBuffer, "%.1d", smoothTemperature); 
-    u8g2.setFont(u8g2_font_profont22_tn);   
+    u8g2.setFont(u8g2_font_profont22_mr);   
     // int tempStrLen = u8g2.getStrWidth(dTempBuffer);
     u8g2.setCursor(70, 21);
     u8g2.print(smoothTemperature,1);
-    u8g2.setFont(u8g2_font_profont11_tr); 
-    u8g2.print("C");
+    u8g2.setFont(u8g2_font_profont11_mf); 
+    u8g2.print("°C");
     u8g2.setCursor(0, 35);
     if (steamMode){
       u8g2.print(F("Steam Mode on"));
     }
     else{
-      u8g2.print(F("Target:  "));
+      u8g2.print(F("Target:"));
     }
-    u8g2.setCursor(98, 35);
+    u8g2.setCursor(104, 35);
     u8g2.print(targetTemp,1);
    
     u8g2.setCursor(0, 49);
-    u8g2.print(F("Power:  "));
+    u8g2.print(F("Power:"));
+    u8g2.setCursor(98, 49);
     u8g2.print(heatCycle * 0.05);  
     u8g2.print("%");
 
+    u8g2.drawHLine(0 , 54, 128);
     u8g2.setCursor(0, 64);
     u8g2.print("Steam Menu Shot 2Shot");
   } while ( u8g2.nextPage() );
 }
 
-void OledMenu( String str1, String str2) {
+void OledMenu( String str1, String str2, String str3, String str4) {
   u8g2.firstPage();
   do {
-    u8g2.setCursor(0, 7);
+    u8g2.setCursor(7, 14);
+    u8g2.setFont(u8g2_font_6x12_m_symbols); 
+    u8g2.drawUTF8(0,7,"▶");
+    u8g2.setFont(u8g2_font_profont11_mf);
+    u8g2.setCursor(14, 7);
     u8g2.print(str1);
-    u8g2.setCursor(0, 21);
+    u8g2.setCursor(14, 21);
     u8g2.print(str2);
+    u8g2.setCursor(14, 35);
+    u8g2.print(str3);
+    u8g2.setCursor(14, 49);
+    u8g2.print(str4);
     u8g2.setCursor(0, 64);
+    u8g2.drawHLine(0 , 54, 128);
     u8g2.print("Exit  Sel    Up  Down");
+  } while ( u8g2.nextPage() );
+};
+
+void OledSetValue(String valueName, float value)
+{
+  u8g2.firstPage();
+  do {
+    u8g2.setFont(u8g2_font_profont11_mf);   
+    u8g2.setCursor(0, 7);
+    u8g2.print(valueName);
+    u8g2.setCursor(0, 35);
+    u8g2.setFont(u8g2_font_profont22_mr);   
+    u8g2.print(value);
+    u8g2.drawHLine(0 , 54, 128);
+    u8g2.setFont(u8g2_font_profont11_mf);   
+    u8g2.setCursor(0, 64);
+    u8g2.print("Exit  Set    Up  Down");
   } while ( u8g2.nextPage() );
 };
 
@@ -101,7 +138,7 @@ u8g2.firstPage();
   do {
     u8g2.setCursor(0, 7);
     u8g2.print(F("Espressuino")); 
-    u8g2.drawHLine(0 ,9 , 64); 
+    u8g2.drawHLine(0 ,9 , 66); 
     u8g2.setCursor(0, 21);
     u8g2.print(F("Temp:  "));
     // float displayTemperature = truncf((smoothTemperature) * 10) / 10;
@@ -111,18 +148,19 @@ u8g2.firstPage();
     // int tempStrLen = u8g2.getStrWidth(dTempBuffer);
     u8g2.setCursor(70, 21);
     u8g2.print(smoothTemperature,1);
-    u8g2.setFont(u8g2_font_profont11_tr); 
+    u8g2.setFont(u8g2_font_profont11_mr); 
     u8g2.print("C");
     u8g2.setCursor(0, 35);
-    u8g2.print(F("Power svr mode"));
-    u8g2.setCursor(104, 34);
+    u8g2.print(F("Power saver mode"));
+    u8g2.setCursor(104, 35);
     u8g2.print(targetTemp,1);
    
-    u8g2.setCursor(0, 49);
-    u8g2.print(F("Power:  "));
-    u8g2.print(heatCycle * 0.05);  
-    u8g2.print("%");
+    // u8g2.setCursor(0, 49);
+    // u8g2.print(F("Power:  "));
+    // u8g2.print(heatCycle * 0.05);  
+    // u8g2.print("%");
 
+    u8g2.drawHLine(0 , 54, 128); 
     u8g2.setCursor(0, 64);
     u8g2.print("Exit");
   } while ( u8g2.nextPage() );

@@ -10,7 +10,6 @@ const int THERMISTORPIN = A0;  // Analog input pin that the potentiometer is att
 // temp. for nominal resistance (almost always 25 C)
 #define TEMPERATURENOMINAL (25)
 
-float offsetTemp = 0.0;        // offset temp boiler to portafilter
 float sensorErrorThreshold = -20.0;        // offset temp boiler to portafilter
 
 // first arg is the weight (20 => 20%)
@@ -33,7 +32,6 @@ void MeasureTemperature() {
   rawTemperature += 1.0 / (TEMPERATURENOMINAL + 273.15); // + (1/To)
   rawTemperature = 1.0 / rawTemperature;                 // Invert
   rawTemperature -= 273.15;                         // convert to C
-  rawTemperature -= offsetTemp;
 
   if (rawTemperature < sensorErrorThreshold)
   {
@@ -43,4 +41,6 @@ void MeasureTemperature() {
 
   TempFilter.Filter(rawTemperature);   // filter current temp
   smoothTemperature = TempFilter.Current();
+
+  displayTemperature = smoothTemperature - (sensorOffset * (1 - (coffTargetTemp - smoothTemperature)/coffTargetTemp));
 }

@@ -1,10 +1,16 @@
+#include<EEPROM.h>
 
-float targetTemp = 107.0;       // target temperature
-float coffTargetTemp = 107.0;       // target temperature
+#define EEPROM_ADDR_COFF_TEMP (0)
+#define EEPROM_ADDR_STEAM_TEMP (4)
+#define EEPROM_ADDR_ES_TEMP (8)
+
+float targetTemp = 106.0;       // target temperature
+float coffTargetTemp = 106.0;       // target temperature
 float steamTargetTemp = 155.0;       // target temperature
 float energySaverTemp = 80.0;       // target temperature
-const float sensorOffset = 15.0;
+const float sensorOffset = 13.0;
 float smoothTemperature = 0.0;
+float displayTemperature = 0.0;
 
 int heatCycle = 0;
 bool bSensorError = 0;
@@ -24,6 +30,19 @@ void setup() {
   initSsr();
   initSerial();
   initPump();
+
+  //  for (int i = 0 ; i < EEPROM.length() ; i++) {
+  //   EEPROM.write(i, 0);
+  // }
+
+  // EEPROM.put(EEPROM_ADDR_COFF_TEMP,106.0f);
+  // EEPROM.put(EEPROM_ADDR_STEAM_TEMP,160.0f);
+  // EEPROM.put(EEPROM_ADDR_ES_TEMP,80.0f);
+
+  EEPROM.get(EEPROM_ADDR_COFF_TEMP,coffTargetTemp);
+  EEPROM.get(EEPROM_ADDR_STEAM_TEMP,steamTargetTemp);
+  EEPROM.get(EEPROM_ADDR_ES_TEMP,energySaverTemp);
+
 }
 
 void loop() {
